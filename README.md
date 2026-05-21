@@ -1,27 +1,28 @@
 # simple-three-slider
 
-A React + Three.js carousel slider with ripple distortion effect powered by custom GLSL shaders.
-
-When navigating between slides, a ripple distortion propagates across the canvas in the opposite direction of the slide transition, creating a visually engaging WebGL effect.
+A React + Three.js carousel slider with ripple distortion effect powered by custom GLSL shaders. Renders portrait images (9:16) in a WebGL canvas with smooth transitions, grayscale/zoom hover effects, freehand drag scrolling, and infinite loop support.
 
 ## Features
 
-- **React components as slides** — Pass any React node as a slide item
-- **Ripple distortion effect** — Custom GLSL post-processing shader with configurable intensity and speed
-- **Navigation controls** — Built-in prev/next buttons with accessibility support
-- **Auto-play** — Optional automatic slide advancement with configurable interval
+- **Portrait images (9:16)** — Optimized for vertical content
+- **Ripple distortion effect** — Custom GLSL post-processing shader on slide transitions and drag
+- **Grayscale hover** — Shader-based grayscale filter removed on hover with smooth animation
+- **Zoom hover** — Animated scale-up on hover with content cropping
+- **FreeHand drag** — Smooth horizontal scroll with momentum/inertia physics
+- **Infinite loop** — Seamless virtual loop with modular slide repositioning (no jump)
+- **Auto-play** — Automatic slide advancement with configurable delay
+- **Custom navigation** — Inject your own navigation component via React Context
+- **Configurable gap** — Pixel-based spacing between slides
 - **Fully typed** — Written in TypeScript with exported type definitions
 - **Lightweight** — Tree-shakeable ESM and CJS builds
 
 ## Installation
 
 ```bash
-npm install simple-three-slider
+npm install @_gmdev/simple-three-slider
 ```
 
 ### Peer Dependencies
-
-You need to install these peer dependencies in your project:
 
 ```bash
 npm install react react-dom three @react-three/fiber @react-three/drei @react-three/postprocessing
@@ -30,29 +31,21 @@ npm install react react-dom three @react-three/fiber @react-three/drei @react-th
 ## Quick Start
 
 ```tsx
-import { SimpleThreeSlider } from 'simple-three-slider';
+import { SimpleThreeSlider } from '@_gmdev/simple-three-slider';
+
+const images = [
+  'https://picsum.photos/id/10/900/1600',
+  'https://picsum.photos/id/20/900/1600',
+  'https://picsum.photos/id/30/900/1600',
+  'https://picsum.photos/id/40/900/1600',
+];
 
 function App() {
-  const slides = [
-    <div style={{ padding: '40px', background: '#e74c3c', color: '#fff' }}>
-      <h2>Slide 1</h2>
-      <p>Any React content works here</p>
-    </div>,
-    <div style={{ padding: '40px', background: '#3498db', color: '#fff' }}>
-      <h2>Slide 2</h2>
-      <p>Including interactive elements</p>
-    </div>,
-    <div style={{ padding: '40px', background: '#2ecc71', color: '#fff' }}>
-      <h2>Slide 3</h2>
-      <button onClick={() => alert('Clicked!')}>Click me</button>
-    </div>,
-  ];
-
   return (
     <SimpleThreeSlider
-      items={slides}
+      images={images}
       width={800}
-      height={450}
+      height={500}
     />
   );
 }
@@ -62,47 +55,89 @@ function App() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `items` | `ReactNode[]` | **required** | List of React components to display as slides |
+| `images` | `string[]` | **required** | Array of image URLs (must be 9:16 portrait ratio) |
 | `width` | `number` | `800` | Canvas width in pixels |
 | `height` | `number` | `450` | Canvas height in pixels |
-| `autoPlay` | `boolean` | `false` | Enable automatic slide advancement |
-| `autoPlayInterval` | `number` | `3000` | Auto-play interval in milliseconds |
-| `rippleIntensity` | `number` | `0.3` | Ripple distortion intensity (0 to 1) |
-| `rippleSpeed` | `number` | `2.0` | Ripple decay speed factor |
+| `gap` | `number` | `24` | Gap between slides in pixels |
+| `navigation` | `ReactNode` | built-in | Custom navigation component |
+| `grayscale` | `boolean` | `false` | Apply grayscale filter (removed on hover) |
+| `zoomed` | `boolean` | `false` | Enable zoom animation on hover |
+| `freeHand` | `boolean` | `false` | Enable drag-to-scroll with momentum |
+| `infinite` | `boolean` | `false` | Enable seamless infinite loop |
+| `auto` | `boolean` | `false` | Enable automatic slide advancement |
+| `delay` | `number` | `3000` | Auto-play interval in milliseconds |
+| `rippleIntensity` | `number` | `0.5` | Ripple distortion intensity (0 to 1) |
+| `rippleSpeed` | `number` | `1.5` | Ripple decay speed factor |
 | `className` | `string` | — | CSS class name for the container |
 | `onSlideChange` | `(index: number) => void` | — | Callback fired when active slide changes |
 
 ## Examples
 
-### Auto-Play Slider
+### Grayscale + Zoom on Hover
 
 ```tsx
 <SimpleThreeSlider
-  items={slides}
-  autoPlay
-  autoPlayInterval={2000}
-  onSlideChange={(index) => console.log(`Slide ${index}`)}
+  images={images}
+  grayscale
+  zoomed
 />
 ```
 
-### High Ripple Effect
+### Infinite Auto-Play
 
 ```tsx
 <SimpleThreeSlider
-  items={slides}
-  rippleIntensity={0.8}
-  rippleSpeed={1.0}
+  images={images}
+  infinite
+  auto
+  delay={2500}
 />
 ```
 
-### Custom Sized
+### FreeHand Drag
 
 ```tsx
 <SimpleThreeSlider
-  items={slides}
-  width={1024}
-  height={768}
-  className="my-slider"
+  images={images}
+  freeHand
+  infinite
+/>
+```
+
+### Custom Navigation
+
+```tsx
+import { SimpleThreeSlider, useSliderControls } from '@_gmdev/simple-three-slider';
+
+function MyNavigation() {
+  const { goToPrev, goToNext, currentIndex, totalSlides, hasPrev, hasNext } = useSliderControls();
+
+  return (
+    <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)' }}>
+      <button onClick={goToPrev} disabled={!hasPrev}>Prev</button>
+      <span>{currentIndex + 1} / {totalSlides}</span>
+      <button onClick={goToNext} disabled={!hasNext}>Next</button>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <SimpleThreeSlider
+      images={images}
+      navigation={<MyNavigation />}
+      infinite
+    />
+  );
+}
+```
+
+### Custom Gap
+
+```tsx
+<SimpleThreeSlider
+  images={images}
+  gap={48}
 />
 ```
 

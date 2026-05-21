@@ -33,6 +33,8 @@ interface SliderSceneProps {
   gap: number;
   containerWidth: number;
   containerHeight: number;
+  /** Whether infinite loop is enabled */
+  infinite: boolean;
   /** Shared ref: drag offset in pixels (from useFreeHand) */
   dragOffsetRef: React.MutableRefObject<number>;
   /** Shared ref: release velocity in px/ms */
@@ -68,6 +70,7 @@ export function SliderScene({
   zoomed,
   gap = DEFAULT_GAP,
   containerWidth,
+  infinite,
   dragOffsetRef,
   velocityRef,
   isDraggingRef,
@@ -92,6 +95,8 @@ export function SliderScene({
 
     return { planeWidth: pW, planeHeight: pH, slideStep: step };
   }, [size.width, size.height, gap, containerWidth]);
+
+  const slideGroupRefs = useRef<(THREE.Group | null)[]>([]);
 
   const { hoveredIndex, onSlidePointerEnter, onSlidePointerLeave } = useSlideHover();
 
@@ -160,7 +165,9 @@ export function SliderScene({
 
       const currentWorldX = groupRef.current.position.x;
       const nearestIndex = Math.round(-currentWorldX / slideStep);
-      const clamped = Math.max(0, Math.min(nearestIndex, textures.length - 1));
+      const clamped = infinite
+        ? nearestIndex
+        : Math.max(0, Math.min(nearestIndex, textures.length - 1));
 
       inertiaOffsetRef.current = 0;
       dragOffsetRef.current = 0;
@@ -172,6 +179,21 @@ export function SliderScene({
         baseX,
         LERP_FACTOR,
       );
+    }
+
+    // Infinite repositioning: wrap each slide around the camera center
+    if (infinite) {
+      const total = textures.length;
+      const totalWidth = total * slideStep;
+      const cameraX = -groupRef.current.position.x;
+
+      slideGroupRefs.current.forEach((group, i) => {
+        if (!group) return;
+        const baseSlideX = i * slideStep;
+        let offset = baseSlideX - cameraX;
+        offset = ((offset % totalWidth) + totalWidth + totalWidth / 2) % totalWidth - totalWidth / 2;
+        group.position.x = cameraX + offset;
+      });
     }
 
     if (rippleRef.current) {
@@ -187,12 +209,14 @@ export function SliderScene({
         {textures.map((texture, index) => (
           <group
             key={index}
+            ref={(el) => { slideGroupRefs.current[index] = el; }}
+            position={[infinite ? 0 : index * slideStep, 0, 0]}
             onPointerEnter={onSlidePointerEnter(index)}
             onPointerLeave={onSlidePointerLeave}
           >
             <SliderItem
               texture={texture}
-              positionX={index * slideStep}
+              positionX={0}
               width={planeWidth}
               height={planeHeight}
               isHovered={hoveredIndex === index}

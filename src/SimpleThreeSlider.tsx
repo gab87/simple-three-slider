@@ -143,6 +143,7 @@ export function SimpleThreeSlider({
           gap={gap}
           containerWidth={width}
           containerHeight={height}
+          infinite={infinite}
           dragOffsetRef={dragOffsetRef}
           velocityRef={velocityRef}
           isDraggingRef={isDraggingRef}

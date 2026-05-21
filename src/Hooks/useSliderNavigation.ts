@@ -51,45 +51,55 @@ export function useSliderNavigation({
   const hasNext = infinite || currentIndex < totalItems - 1;
 
   /**
-   * Navigates to the previous slide. Wraps to last if infinite.
+   * Normalizes an index to [0, totalItems) range.
+   * @param index - Potentially unbounded index
+   * @returns Normalized index within valid range
+   */
+  const normalize = useCallback(
+    (index: number) => ((index % totalItems) + totalItems) % totalItems,
+    [totalItems],
+  );
+
+  /**
+   * Navigates to the previous slide. Unbounded decrement if infinite.
    */
   const goToPrev = useCallback(() => {
     if (!hasPrev) return;
 
     setLastDirection('left');
     setCurrentIndex((prev) => {
-      const next = prev <= 0 ? totalItems - 1 : prev - 1;
-      onSlideChange?.(next);
+      const next = infinite ? prev - 1 : prev - 1;
+      onSlideChange?.(normalize(next));
       return next;
     });
-  }, [hasPrev, totalItems, onSlideChange]);
+  }, [hasPrev, infinite, onSlideChange, normalize]);
 
   /**
-   * Navigates to the next slide. Wraps to first if infinite.
+   * Navigates to the next slide. Unbounded increment if infinite.
    */
   const goToNext = useCallback(() => {
     if (!hasNext) return;
 
     setLastDirection('right');
     setCurrentIndex((prev) => {
-      const next = prev >= totalItems - 1 ? 0 : prev + 1;
-      onSlideChange?.(next);
+      const next = infinite ? prev + 1 : prev + 1;
+      onSlideChange?.(normalize(next));
       return next;
     });
-  }, [hasNext, totalItems, onSlideChange]);
+  }, [hasNext, infinite, onSlideChange, normalize]);
 
   /**
    * Navigates to a specific slide index.
-   * @param index - Target slide index
+   * @param index - Target slide index (unbounded if infinite)
    */
   const goToIndex = useCallback(
     (index: number) => {
-      const clamped = Math.max(0, Math.min(index, totalItems - 1));
-      setLastDirection(clamped > currentIndex ? 'right' : 'left');
-      setCurrentIndex(clamped);
-      onSlideChange?.(clamped);
+      const target = infinite ? index : Math.max(0, Math.min(index, totalItems - 1));
+      setLastDirection(target > currentIndex ? 'right' : 'left');
+      setCurrentIndex(target);
+      onSlideChange?.(normalize(target));
     },
-    [currentIndex, totalItems, onSlideChange],
+    [currentIndex, totalItems, infinite, onSlideChange, normalize],
   );
 
   useEffect(() => {
@@ -97,9 +107,9 @@ export function useSliderNavigation({
 
     intervalRef.current = setInterval(() => {
       setCurrentIndex((prev) => {
-        const next = prev >= totalItems - 1 ? 0 : prev + 1;
+        const next = prev + 1;
         setLastDirection('right');
-        onSlideChange?.(next);
+        onSlideChange?.(normalize(next));
         return next;
       });
     }, delay);
