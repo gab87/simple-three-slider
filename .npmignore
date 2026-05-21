@@ -1,0 +1,15 @@
+src/
+__tests__/
+stories/
+.storybook/
+storybook-static/
+node_modules/
+coverage/
+.DS_Store
+*.log
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+.gitignore
+.env
+.env.local
